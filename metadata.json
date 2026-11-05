@@ -1,0 +1,6 @@
+{
+  "name": "BioStock CRM - UCI Honda",
+  "description": "CRM hospitalario para gestión de insumos antisépticos, optimización de pedidos mensuales bajo techo presupuestal y análisis predictivo de consumo con IA.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
