@@ -14,30 +14,61 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json({ limit: '10mb' }));
 
-// Helper to initialize Google GenAI safely
-function getGeminiClient() {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
+/**
+ * Sanitizes and validates the GEMINI_API_KEY from environment variables.
+ * Handles common Render / .env quirks:
+ * - Trims accidental leading/trailing whitespace
+ * - Strips accidental wrapping quotes (e.g. "AIzaSy..." or 'AIzaSy...')
+ * - Ignores placeholders like "MY_GEMINI_API_KEY", "undefined", "null"
+ */
+function getCleanGeminiApiKey(): string | null {
+  const raw = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (!raw) return null;
+
+  const cleaned = raw.trim().replace(/^["']|["']$/g, '').trim();
+
+  if (
+    !cleaned ||
+    cleaned === 'MY_GEMINI_API_KEY' ||
+    cleaned === 'undefined' ||
+    cleaned === 'null' ||
+    cleaned.length < 15
+  ) {
     return null;
   }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
+
+  return cleaned;
+}
+
+// Helper to initialize Google GenAI safely
+function getGeminiClient() {
+  const apiKey = getCleanGeminiApiKey();
+  if (!apiKey) {
+    return null;
+  }
+
+  try {
+    return new GoogleGenAI({
+      apiKey,
+      httpOptions: {
+        headers: {
+          'User-Agent': 'aistudio-build',
+        },
       },
-    },
-  });
+    });
+  } catch (err: any) {
+    console.warn('[BioStock AI] Failed to initialize GoogleGenAI with key:', err.message);
+    return null;
+  }
 }
 
 // Intelligent Clinical Fallback Chat Engine for UCI Honda
 function generateIntelligentBiomedicalChatReply(message: string, context: any) {
-  const lowerMsg = message.toLowerCase();
+  const lowerMsg = (message || '').toLowerCase();
 
   // Case 1: Quigrass inquiry / adjustment (e.g., 90 days, 0 stock)
   if (lowerMsg.includes('quigrass') || (lowerMsg.includes('90') && (lowerMsg.includes('dias') || lowerMsg.includes('días')))) {
     const isNoStock = lowerMsg.includes('no tengo') || lowerMsg.includes('stock 0') || lowerMsg.includes('sin stock') || lowerMsg.includes('cero');
-    const is90Days = lowerMsg.includes('90');
 
     return {
       reply: `📋 **Diagnóstico & Ajuste Inmediato de Quigrass (UCI Honda):**
@@ -162,6 +193,19 @@ Pulsa el botón de acción rápida abajo para aplicar esta actualización direct
   };
 }
 
+// Health check endpoint (helpful for Render health checks and verifying AI status)
+app.get('/api/health', (req, res) => {
+  const cleanKey = getCleanGeminiApiKey();
+  res.json({
+    status: 'ok',
+    app: 'BioStock CRM - UCI Honda',
+    port: PORT,
+    geminiKeyDetected: !!cleanKey,
+    aiEngine: cleanKey ? 'Gemini 3.8 Flash (Active)' : 'Autonomous Local Biomedical Engine (Active)',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // API Route: AI Consumption Analysis & Anomaly Detection
 app.post('/api/ai/analyze-consumption', async (req, res) => {
   try {
@@ -258,7 +302,7 @@ Genera un JSON estrictamente válido:
 
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('AI request timeout')), 5000)
+        setTimeout(() => reject(new Error('AI request timeout')), 8000)
       );
 
       const response: any = await Promise.race([
@@ -275,7 +319,7 @@ Genera un JSON estrictamente válido:
       const parsed = JSON.parse(response.text || '{}');
       return res.json(parsed);
     } catch (apiError: any) {
-      console.warn('Gemini API call failed, using dynamic clinical fallback engine:', apiError.message);
+      console.warn('[BioStock AI] Gemini API call failed or timed out, gracefully falling back to local clinical engine:', apiError.message);
       return res.status(200).json({
         fallback: true,
         summary: 'Diagnóstico generado con el motor biomédico local de alta precisión para UCI Honda.',
@@ -363,7 +407,7 @@ Devuelve un JSON con:
 
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('AI request timeout')), 5000)
+        setTimeout(() => reject(new Error('AI request timeout')), 8000)
       );
 
       const response: any = await Promise.race([
@@ -380,7 +424,7 @@ Devuelve un JSON con:
       const parsed = JSON.parse(response.text || '{}');
       return res.json(parsed);
     } catch (apiError: any) {
-      console.warn('Gemini optimize API call failed, using fallback:', apiError.message);
+      console.warn('[BioStock AI] Gemini optimize API call failed or timed out, gracefully falling back:', apiError.message);
       return res.status(200).json({
         fallback: true,
         strategyOverview: 'Estrategia de Rotación Presupuestal Estándar calculada para respetar el techo de $3.000.000 COP.',
@@ -429,7 +473,7 @@ Tus especialidades:
 
     try {
       const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('AI request timeout')), 5000)
+        setTimeout(() => reject(new Error('AI request timeout')), 8000)
       );
 
       const response: any = await Promise.race([
@@ -450,7 +494,7 @@ Tus especialidades:
         suggestedAction: localReplyObj.suggestedAction || undefined
       });
     } catch (apiError: any) {
-      console.warn('Gemini chat API call failed, using dynamic clinical fallback answer:', apiError.message);
+      console.warn('[BioStock AI] Gemini chat API call failed or timed out, gracefully falling back to local clinical engine:', apiError.message);
       const fallbackObj = generateIntelligentBiomedicalChatReply(message || '', context || {});
       return res.status(200).json(fallbackObj);
     }
@@ -479,7 +523,12 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`BioStock CRM server running at http://0.0.0.0:${PORT}`);
+    const cleanKey = getCleanGeminiApiKey();
+    console.log(`====================================================`);
+    console.log(`🏥 BioStock CRM Server running at http://0.0.0.0:${PORT}`);
+    console.log(`🔑 GEMINI_API_KEY: ${cleanKey ? '✅ Configurada y Limpia (Modo Neural Activo)' : 'ℹ️ No detectada (Modo Clínico Local Autónomo Activo)'}`);
+    console.log(`🛡️ Techo Presupuestal: $3.000.000 COP (IVA 19%)`);
+    console.log(`====================================================`);
   });
 }
 

@@ -8,18 +8,20 @@ import {
   getUnitPriceWithIva,
   calculateOrderTotals,
 } from '../utils/calculations';
-import { DollarSign, PieChart, TrendingUp, Calendar, AlertCircle, ArrowUpRight, BarChart3, ShieldCheck } from 'lucide-react';
+import { DollarSign, PieChart, TrendingUp, Calendar, AlertCircle, ArrowUpRight, BarChart3, ShieldCheck, FileSpreadsheet } from 'lucide-react';
 
 interface BudgetSummaryProps {
   products: Product[];
   monthlyBudgetCap: number;
   monthlyPlan?: MonthlyOrderAllocation[];
+  onExportExcel?: () => void;
 }
 
 export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
   products,
   monthlyBudgetCap,
   monthlyPlan = [],
+  onExportExcel,
 }) => {
   // Aggregate daily costs
   const totalDailyNet = products.reduce((sum, p) => sum + getDailyCostNet(p), 0);
@@ -148,6 +150,17 @@ export const BudgetSummary: React.FC<BudgetSummaryProps> = ({
             prever contingencias sin asfixiar el flujo de caja.
           </p>
         </div>
+
+        {onExportExcel && (
+          <button
+            onClick={onExportExcel}
+            className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20 shrink-0"
+            title="Descargar Plan de Compras en Excel (.xlsx)"
+          >
+            <FileSpreadsheet className="w-4 h-4 text-white" />
+            <span>Descargar Plan Excel</span>
+          </button>
+        )}
       </div>
 
       {/* Visual Share of Budget by Product */}

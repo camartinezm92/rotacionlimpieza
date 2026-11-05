@@ -15,6 +15,7 @@ import { AiBiomedicalAdvisor } from './components/AiBiomedicalAdvisor';
 import { EditStockModal } from './components/EditStockModal';
 import { PurchaseOrderModal } from './components/PurchaseOrderModal';
 import { DurationCalibrationModal } from './components/DurationCalibrationModal';
+import { exportAnnualPlanToExcel } from './utils/excelExport';
 
 export default function App() {
   // Configurable Products with Editable Baseline Durations & Prices
@@ -312,6 +313,11 @@ export default function App() {
     input.click();
   };
 
+  // Export Excel Spreadsheet (.xlsx)
+  const handleExportExcel = () => {
+    exportAnnualPlanToExcel(products, stockList, monthlyPlan, monthlyBudgetCap);
+  };
+
   // Open audit modal for product
   const handleSelectForAudit = (productId: string) => {
     setActiveTab('auditoria');
@@ -327,6 +333,7 @@ export default function App() {
         onResetToInitial={handleResetToInitial}
         onExportData={handleExportData}
         onImportData={handleImportData}
+        onExportExcel={handleExportExcel}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
       />
@@ -361,6 +368,7 @@ export default function App() {
               const fresh = generateOptimalRotationalPlan(products, stockList, monthlyBudgetCap, 12);
               setMonthlyPlan(fresh);
             }}
+            onExportExcel={handleExportExcel}
           />
         )}
 
@@ -369,6 +377,7 @@ export default function App() {
             products={products}
             monthlyBudgetCap={monthlyBudgetCap}
             monthlyPlan={monthlyPlan}
+            onExportExcel={handleExportExcel}
           />
         )}
 

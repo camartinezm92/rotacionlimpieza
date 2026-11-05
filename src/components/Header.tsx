@@ -1,5 +1,5 @@
 import React from 'react';
-import { Activity, ShieldAlert, Sparkles, Download, Upload, RotateCcw, Building2 } from 'lucide-react';
+import { Activity, ShieldAlert, Sparkles, Download, Upload, RotateCcw, Building2, FileSpreadsheet } from 'lucide-react';
 import { formatCOP } from '../utils/calculations';
 
 interface HeaderProps {
@@ -10,6 +10,7 @@ interface HeaderProps {
   onResetToInitial: () => void;
   onExportData: () => void;
   onImportData: () => void;
+  onExportExcel: () => void;
   activeTab: string;
   setActiveTab: (tab: 'inventario' | 'planificador' | 'presupuesto' | 'auditoria' | 'ia') => void;
 }
@@ -22,6 +23,7 @@ export const Header: React.FC<HeaderProps> = ({
   onResetToInitial,
   onExportData,
   onImportData,
+  onExportExcel,
   activeTab,
   setActiveTab,
 }) => {
@@ -79,6 +81,15 @@ export const Header: React.FC<HeaderProps> = ({
 
             {/* Action buttons */}
             <div className="flex items-center gap-1.5 ml-auto md:ml-0">
+              <button
+                onClick={onExportExcel}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-lg font-semibold flex items-center gap-1.5 shadow-md shadow-emerald-600/20 text-xs transition-all cursor-pointer"
+                title="Descargar Plan de Compras Completo en Excel (.xlsx)"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-white" />
+                <span>Descargar Excel</span>
+              </button>
+
               <button
                 onClick={onOpenAiChat}
                 className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-3 py-1.5 rounded-lg font-medium flex items-center gap-1.5 shadow-md shadow-purple-600/20 text-xs transition-all cursor-pointer"

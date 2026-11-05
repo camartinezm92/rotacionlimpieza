@@ -23,6 +23,7 @@ import {
   ShieldAlert,
   Zap,
   Check,
+  FileSpreadsheet,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -35,6 +36,7 @@ interface OrderPlannerProps {
   onUpdateBudgetCap: (newCap: number) => void;
   onGenerateRequisition: (allocation: MonthlyOrderAllocation) => void;
   onForceReoptimize?: () => void;
+  onExportExcel?: () => void;
 }
 
 export const OrderPlanner: React.FC<OrderPlannerProps> = ({
@@ -46,6 +48,7 @@ export const OrderPlanner: React.FC<OrderPlannerProps> = ({
   onUpdateBudgetCap,
   onGenerateRequisition,
   onForceReoptimize,
+  onExportExcel,
 }) => {
   const [selectedMonthIdx, setSelectedMonthIdx] = useState<number>(0);
   const [isAiOptimizing, setIsAiOptimizing] = useState<boolean>(false);
@@ -220,6 +223,17 @@ export const OrderPlanner: React.FC<OrderPlannerProps> = ({
               <Sparkles className="w-3.5 h-3.5 text-amber-300" />
               <span>{isAiOptimizing ? 'Analizando...' : 'Asesoría IA'}</span>
             </button>
+
+            {onExportExcel && (
+              <button
+                onClick={onExportExcel}
+                className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3.5 py-2.5 rounded-xl transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-emerald-600/20"
+                title="Descargar Plan de Compras Completo en Excel (.xlsx)"
+              >
+                <FileSpreadsheet className="w-4 h-4 text-white" />
+                <span>Descargar Excel</span>
+              </button>
+            )}
           </div>
         </div>
 
